@@ -1,0 +1,22 @@
+[http]
+  [http.middlewares]
+    [http.middlewares.auth.basicAuth]
+      users = [
+        "REPLACE_ME_HTPASSWD_BASIC_AUTH",
+      ]
+    [http.middlewares.redirect.redirectScheme]
+      scheme = "https"
+  [http.routers]
+    [http.routers.host]
+      rule = "Host(`REPLACE_ME_DOMAIN`)"
+      service = "host"
+      [http.routers.host.tls]
+        certResolver = "default"
+        [[http.routers.host.tls.domains]]
+          main = "*.REPLACE_ME_DOMAIN"
+          sans = ["REPLACE_ME_DOMAIN"]
+  [http.services]
+    [http.services.host.loadBalancer]
+        passHostHeader = true
+        [[http.services.host.loadBalancer.servers]]
+          url = "http://localhost"
