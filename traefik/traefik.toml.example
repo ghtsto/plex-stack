@@ -17,7 +17,7 @@
     swarmModeRefreshSeconds = "15s"
     exposedByDefault = false
   [providers.file]
-    filename = "dynamic_conf.toml"
+    filename = "/config/dynamic_conf.toml"
     watch = true
 
 [log]
@@ -26,8 +26,8 @@
 [certificatesResolvers]
   [certificatesResolvers.default]
     [certificatesResolvers.default.acme]
-      email = "REPLACE_ME_CERTIFICATE_EMAIL"
-      storage = "acme.json"
+      email = "ACME_EMAIL"
+      storage = "/config/acme.json"
       [certificatesResolvers.default.acme.dnsChallenge]
         provider = "cloudflare"
         delayBeforeCheck = "0s"
