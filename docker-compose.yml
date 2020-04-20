@@ -8,25 +8,21 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DATA_DIR}/watchtower/config.json:/config.json:ro
-    networks:
-      - web
-  
+
   traefik:
     container_name: traefik
     image: traefik
+    command: --configFile=/config/traefik.toml
     restart: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DATA_DIR}/traefik/traefik.toml:/traefik.toml
-      - ${DATA_DIR}/traefik/dynamic_conf.toml:/dynamic_conf.toml
-      - ${DATA_DIR}/acme/acme.json:/acme.json
+      - traefik:/config
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.traefik-redirect.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.traefik-redirect.middlewares=redirect@file"
       - "traefik.http.routers.traefik.middlewares=auth@file"
@@ -34,8 +30,6 @@ services:
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.tls.certresolver=default"
       - "traefik.http.routers.traefik.tls=true"
-    networks:
-      - web
     environment:
       - DOMAIN=${DOMAIN}
       - CLOUDFLARE_API_KEY=${CLOUDFLARE_API_KEY}
@@ -47,37 +41,31 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DATA_DIR}/portainer:/data
+      - portainer:/data
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.portainer-redirect.rule=Host(`portainer.${DOMAIN}`)"
       - "traefik.http.routers.portainer-redirect.middlewares=redirect@file"
       - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)"
       - "traefik.http.routers.portainer.tls=true"
       - "com.centurylinklabs.watchtower.enable=true"
-    networks:
-      - web
 
   plexdrive:
     container_name: plexdrive
     image: ghtsto/plexdrive-encfs
     restart: always
     volumes:
-      - ${DATA_DIR}/plexdrive/config:/config
-      - ${DATA_DIR}/plexdrive/cache:/cache
-      - ${DATA_DIR}/plexdrive/data:/data:shared
-      - ${DATA_DIR}/plexdrive/local-encrypted:/local
-      - ${DATA_DIR}/plexdrive/encfs.xml:/encfs.xml
-      - ${DATA_DIR}/plexdrive/encfspass:/encfspass
+      - plexdrive:/config
+      - ./plexdrive/unionfs:/unionfs:shared
+      - ./plexdrive/local-encrypted:/local-encrypted
+      - encfs:/encfs
     privileged: true
     devices:
       - /dev/fuse
     cap_add:
       - MKNOD
       - SYS_ADMIN
-    networks:
-      - web
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -89,17 +77,15 @@ services:
     image: tautulli/tautulli
     restart: always
     volumes:
-      - ${DATA_DIR}/tautulli/config:/config
-      - "${DATA_DIR}/plex/config/Library/Application Support/Plex Media Server/Logs/:/plex_logs"
-    networks:
-      - web
+      - tautulli:/config
+      - plex-config:/plex_logs:ro
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.tautulli-redirect.rule=Host(`tautulli.${DOMAIN}`)"
       - "traefik.http.routers.tautulli-redirect.middlewares=redirect@file"
       - "traefik.http.routers.tautulli.rule=Host(`tautulli.${DOMAIN}`)"
@@ -111,19 +97,17 @@ services:
     image: linuxserver/ombi
     restart: always
     volumes:
-      - ${DATA_DIR}/ombi/config:/config
-    networks:
-      - web
+      - ombi:/config
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
-      - "traefik.http.routers.ombi-redirect.rule=Host(`ombi.${DOMAIN}`)"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
+      - "traefik.http.routers.ombi-redirect.rule=Host(`requests.${DOMAIN}`)"
       - "traefik.http.routers.ombi-redirect.middlewares=redirect@file"
-      - "traefik.http.routers.ombi.rule=Host(`ombi.${DOMAIN}`)"
+      - "traefik.http.routers.ombi.rule=Host(`requests.${DOMAIN}`)"
       - "traefik.http.routers.ombi.tls=true"
       - "com.centurylinklabs.watchtower.enable=true"
 
@@ -132,19 +116,17 @@ services:
     image: linuxserver/sonarr
     restart: always
     volumes:
-      - ${DATA_DIR}/sonarr/config:/config
-      - ${DATA_DIR}/plexdrive/data:/data
-      - ${DATA_DIR}/sabnzbd/tmp:/sabnzbd
-      - ${DATA_DIR}/deluge/tmp:/deluge
-    networks:
-      - web
+      - sonarr:/config
+      - ./plexdrive/unionfs:/unionfs
+      - sabnzbd-downloads:/sabnzbd
+      - deluge-downloads:/deluge
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.sonarr-redirect.rule=Host(`sonarr.${DOMAIN}`)"
       - "traefik.http.routers.sonarr-redirect.middlewares=redirect@file"
       - "traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)"
@@ -156,16 +138,14 @@ services:
     image: organizrtools/organizr-v2
     restart: always
     volumes:
-      - ${DATA_DIR}/organizr/config:/config
-    networks:
-      - web
+      - organizr:/config
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.organizr-redirect.rule=Host(`organizr.${DOMAIN}`)"
       - "traefik.http.routers.organizr-redirect.middlewares=redirect@file"
       - "traefik.http.routers.organizr.rule=Host(`organizr.${DOMAIN}`)"
@@ -177,19 +157,17 @@ services:
     image: linuxserver/sabnzbd
     restart: always
     volumes:
-      - ${DATA_DIR}/sabnzbd/config:/config
-      - ${DATA_DIR}/sabnzbd/tmp/downloads:/downloads
-      - ${DATA_DIR}/sabnzbd/tmp/incomplete-downloads:/incomplete-downloads
+      - sabnzbd-config:/config
+      - sabnzbd-downloads:/downloads
+      - sabnzbd-incomplete:/incomplete-downloads
     hostname: sabnzbd.${DOMAIN}
-    networks:
-      - web
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.sabnzbd-redirect.rule=Host(`sabnzbd.${DOMAIN}`)"
       - "traefik.http.routers.sabnzbd-redirect.middlewares=redirect@file"
       - "traefik.http.routers.sabnzbd.rule=Host(`sabnzbd.${DOMAIN}`)"
@@ -201,17 +179,15 @@ services:
     image: linuxserver/deluge
     restart: always
     volumes:
-      - ${DATA_DIR}/deluge/config:/config
-      - ${DATA_DIR}/deluge/tmp/downloads:/downloads
-    networks:
-      - web
+      - deluge-config:/config
+      - deluge-downloads:/downloads
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.deluge-redirect.rule=Host(`deluge.${DOMAIN}`)"
       - "traefik.http.routers.deluge-redirect.middlewares=redirect@file"
       - "traefik.http.routers.deluge.rule=Host(`deluge.${DOMAIN}`)"
@@ -223,17 +199,15 @@ services:
     image: linuxserver/jackett
     restart: always
     volumes:
-      - ${DATA_DIR}/jackett/config:/config
-      - ${DATA_DIR}/jackett/tmp/downloads:/downloads
-    networks:
-      - web
+      - jackett-config:/config
+      - jackett-downloads:/downloads
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.jackett-redirect.rule=Host(`jackett.${DOMAIN}`)"
       - "traefik.http.routers.jackett-redirect.middlewares=redirect@file"
       - "traefik.http.routers.jackett.rule=Host(`jackett.${DOMAIN}`)"
@@ -245,19 +219,17 @@ services:
     image: linuxserver/radarr
     restart: always
     volumes:
-      - ${DATA_DIR}/radarr/config:/config
-      - ${DATA_DIR}/plexdrive/data:/data
-      - ${DATA_DIR}/sabnzbd/tmp:/sabnzbd
-      - ${DATA_DIR}/deluge/tmp:/deluge
-    networks:
-      - web
+      - radarr:/config
+      - ./plexdrive/unionfs:/unionfs
+      - sabnzbd-downloads:/sabnzbd
+      - deluge-downloads:/deluge
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.radarr-redirect.rule=Host(`radarr.${DOMAIN}`)"
       - "traefik.http.routers.radarr-redirect.middlewares=redirect@file"
       - "traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)"
@@ -269,19 +241,17 @@ services:
     image: linuxserver/lidarr
     restart: always
     volumes:
-      - ${DATA_DIR}/lidarr/config:/config
-      - ${DATA_DIR}/plexdrive/data:/data
-      - ${DATA_DIR}/sabnzbd/tmp:/sabnzbd
-      - ${DATA_DIR}/deluge/tmp:/deluge
-    networks:
-      - web
+      - lidarr:/config
+      - ./plexdrive/unionfs/music:/music
+      - deluge-downloads:/downloads
+      - sabnzbd-downloads:/sabnzbd
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.lidarr-redirect.rule=Host(`lidarr.${DOMAIN}`)"
       - "traefik.http.routers.lidarr-redirect.middlewares=redirect@file"
       - "traefik.http.routers.lidarr.rule=Host(`lidarr.${DOMAIN}`)"
@@ -292,11 +262,9 @@ services:
     container_name: plex
     image: plexinc/pms-docker:plexpass
     volumes:
-      - ${DATA_DIR}/plex/config:/config
-      - ${DATA_DIR}/plex/transcode:/transcode
-      - ${DATA_DIR}/plexdrive/data:/data
-    networks:
-      - web
+      - plex-config:/config
+      - plex-transcode:/transcode
+      - ./plexdrive/unionfs:/unionfs
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -305,8 +273,9 @@ services:
       - ADVERTISE_IP=http://plex.${DOMAIN}:80,https://plex.${DOMAIN}:443
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.plex.rule=Host(`plex.${DOMAIN}`)"
+      - "traefik.http.routers.plex.tls=true"
       - "traefik.http.services.plex.loadbalancer.server.port=32400"
       - "com.centurylinklabs.watchtower.enable=true"
 
@@ -314,20 +283,40 @@ services:
     container_name: rclone
     image: ghtsto/rclone-encfs-cron
     volumes:
-      - ${DATA_DIR}/rclone/config:/config
-      - ${DATA_DIR}/rclone/cron/daily:/etc/cron.daily
-      - ${DATA_DIR}/rclone/cron/minute:/etc/cron.minute
-      - ${DATA_DIR}/plexdrive/data:/data
-      - ${DATA_DIR}/plexdrive/local-encrypted:/local
-      - ${DATA_DIR}/plexdrive/encfs.xml:/encfs.xml
-      - ${DATA_DIR}/plexdrive/encfspass:/encfspass
+      - rclone-config:/config
+      - rclone-logs:/logs
+      - ./plexdrive/unionfs:/unionfs
+      - ./plexdrive/local-encrypted:/local-encrypted
+      - encfs:/encfs
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-    networks:
-      - web
 
 networks:
-  web:
-    external: true
+  default:
+    external:
+      name: ${COMPOSE_PROJECT_NAME}
+
+volumes:
+  deluge-config:
+  deluge-downloads:
+  encfs:
+  jackett-config:
+  jackett-downloads:
+  lidarr:
+  ombi:
+  organizr:
+  plex-config:
+  plex-transcode:
+  portainer:
+  radarr:
+  rclone-config:
+  rclone-logs:
+  sabnzbd-config:
+  sabnzbd-downloads:
+  sabnzbd-incomplete:
+  sonarr:
+  tautulli:
+  traefik:
+  plexdrive:

@@ -1,5 +1,5 @@
 *
 */
+!.gitignore
 !traefik.toml.example
 !dynamic_conf.toml.example
-!.gitignore
