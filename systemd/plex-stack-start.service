@@ -1,0 +1,13 @@
+[Unit]
+Description=Script to start the plex-stack
+Documentation=https://github.com/ghtsto/plex-stack
+After=multi-user.target
+
+[Service]
+User=1000
+Group=1000
+WorkingDirectory=/plex-stack
+ExecStart=/plex-stack/plex-stack-start.sh
+
+[Install]
+WantedBy=default.target
