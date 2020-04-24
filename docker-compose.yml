@@ -5,7 +5,6 @@ services:
     container_name: watchtower
     image: containrrr/watchtower
     command: --cleanup --label-enable
-    restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -13,7 +12,6 @@ services:
     container_name: traefik
     image: traefik
     command: --configFile=/config/traefik.toml
-    restart: always
     ports:
       - "80:80"
       - "443:443"
@@ -38,7 +36,6 @@ services:
   portainer:
     container_name: portainer
     image: portainer/portainer
-    restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer:/data
@@ -54,7 +51,6 @@ services:
   plexdrive:
     container_name: plexdrive
     image: ghtsto/plexdrive-encfs
-    restart: always
     volumes:
       - plexdrive:/config
       - ./plexdrive/unionfs:/unionfs:shared
@@ -75,7 +71,6 @@ services:
   tautulli:
     container_name: tautulli
     image: tautulli/tautulli
-    restart: always
     volumes:
       - tautulli:/config
       - plex-config:/plex_logs:ro
@@ -95,7 +90,6 @@ services:
   ombi:
     container_name: ombi
     image: linuxserver/ombi
-    restart: always
     volumes:
       - ombi:/config
     environment:
@@ -114,7 +108,6 @@ services:
   sonarr:
     container_name: sonarr
     image: linuxserver/sonarr
-    restart: always
     volumes:
       - sonarr:/config
       - ./plexdrive/unionfs:/unionfs
@@ -136,7 +129,6 @@ services:
   organizr:
     container_name: organizr
     image: organizrtools/organizr-v2
-    restart: always
     volumes:
       - organizr:/config
     environment:
@@ -155,7 +147,6 @@ services:
   sabnzbd:
     container_name: sabnzbd
     image: linuxserver/sabnzbd
-    restart: always
     volumes:
       - sabnzbd-config:/config
       - sabnzbd-downloads:/downloads
@@ -177,7 +168,8 @@ services:
   deluge:
     container_name: deluge
     image: linuxserver/deluge
-    restart: always
+    ports:
+      - "58946:58946"
     volumes:
       - deluge-config:/config
       - deluge-downloads:/downloads
@@ -197,7 +189,6 @@ services:
   jackett:
     container_name: jackett
     image: linuxserver/jackett
-    restart: always
     volumes:
       - jackett-config:/config
       - jackett-downloads:/downloads
@@ -217,7 +208,6 @@ services:
   radarr:
     container_name: radarr
     image: linuxserver/radarr
-    restart: always
     volumes:
       - radarr:/config
       - ./plexdrive/unionfs:/unionfs
@@ -239,7 +229,6 @@ services:
   lidarr:
     container_name: lidarr
     image: linuxserver/lidarr
-    restart: always
     volumes:
       - lidarr:/config
       - ./plexdrive/unionfs/music:/music
