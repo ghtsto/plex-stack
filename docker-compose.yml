@@ -264,9 +264,9 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=${COMPOSE_PROJECT_NAME}"
       - "traefik.http.routers.plex.rule=Host(`plex.${DOMAIN}`)"
-      - "traefik.http.routers.plex.tls=true"
+#      - "traefik.http.routers.plex.tls=true"
       - "traefik.http.services.plex.loadbalancer.server.port=32400"
-      - "com.centurylinklabs.watchtower.enable=true"
+  #    - "com.centurylinklabs.watchtower.enable=true"
 
   rclone:
     container_name: rclone
@@ -281,6 +281,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+      - FILE_AGE=${FILE_AGE}
 
 networks:
   default:
